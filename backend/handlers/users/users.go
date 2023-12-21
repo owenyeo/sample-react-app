@@ -51,31 +51,37 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		fmt.Println(err)
 		return
 	}
 
 	db, err := database.GetDB()
 	if err != nil {
 		http.Error(w, "Failed to load database", http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 
 	exists, err := db.UserExists(user.Name)
 	if err != nil {
 		http.Error(w, "Failed to check user existence", http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 
 	if exists {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("User exists"))
+		fmt.Println("User exists")
 	} else {
 		if err := db.AddUser(user); err != nil {
 			http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
+			fmt.Println(err)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("User added to database"))
+		fmt.Println("User added to database")
 	}
 }
 
@@ -90,11 +96,13 @@ func NewUserHandler(w http.ResponseWriter, r *http.Request) {
 	db, err := database.GetDB()
 	if err != nil {
 		http.Error(w, "Failed to load database", http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 
 	if err := db.AddUser(user); err != nil {
 		http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 

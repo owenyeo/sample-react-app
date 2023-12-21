@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/owenyeo/sample-react-app/backend/models"
@@ -22,8 +23,20 @@ func NewDatabase(dataSourceName string) (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	fmt.Println("Connected to the database!")
+
+	sqlFile, err := os.ReadFile("backend/database/cvwo.sql")
+	if err != nil {
+		fmt.Println("Error reading the schema file:", err)
+	}
+
+	// Execute the schema
+	_, err = db.Exec(string(sqlFile))
+	if err != nil {
+		fmt.Println("Error executing the schema:", err)
+	}
+
+	fmt.Println("Schema executed successfully!")
 
 	return &Database{db: db}, nil
 }
@@ -68,5 +81,3 @@ func (d *Database) UserExists(username string) (bool, error) {
 	}
 	return exists, nil // User exists or error while checking
 }
-
-

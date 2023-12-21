@@ -17,6 +17,8 @@ func GetRoutes() func(r chi.Router) {
 			json.NewEncoder(w).Encode(response)
 		})
 
+		r.Post("/users/login", users.LoginHandler)
+		r.Post("/users/new", users.NewUserHandler)
 	}
 }
 
