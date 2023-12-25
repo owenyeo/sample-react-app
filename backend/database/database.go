@@ -6,7 +6,6 @@ import (
 	"os"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
-	"github.com/owenyeo/sample-react-app/backend/models"
 )
 
 type Database struct {
@@ -60,24 +59,6 @@ func (d *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return d.db.Exec(query, args...)
 }
 
-func (d *Database) AddUser(newUser models.User) error {
-	_, err := d.db.Exec("INSERT INTO users (name) VALUES ($1)", newUser.Name)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *Database) UserExists(username string) (bool, error) {
-	var exists bool
-	err := d.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE name = $1)", username).Scan(&exists)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil // User does not exist
-		}
-		return false, err // Some other error occurred
-	}
-	return exists, nil // User exists or error while checking
+func (d *Database) QueryRow(query string, args ...interface{}) *sql.Row {
+	return d.db.QueryRow(query, args...)
 }

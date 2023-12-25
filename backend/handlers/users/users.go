@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/owenyeo/sample-react-app/backend/api"
-	users "github.com/owenyeo/sample-react-app/backend/dataaccess"
+	"github.com/owenyeo/sample-react-app/backend/dataaccess"
 	"github.com/owenyeo/sample-react-app/backend/database"
 	"github.com/owenyeo/sample-react-app/backend/models"
 	"github.com/pkg/errors"
@@ -16,6 +16,9 @@ const (
 	ListUsers = "users.HandleList"
 
 	SuccessfulListUsersMessage = "Successfully listed users"
+	SuccessfulUserExistsMessage= "User Exists"
+	SuccessfulAddUserMessage   = "Successfully added user"
+	ErrAddUser				   = "Failed to add user in %s"
 	ErrRetrieveDatabase        = "Failed to retrieve database in %s"
 	ErrRetrieveUsers           = "Failed to retrieve users in %s"
 	ErrEncodeView              = "Failed to retrieve users in %s"
@@ -28,7 +31,7 @@ func HandleList(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveDatabase, ListUsers))
 	}
 
-	users, err := users.List(db)
+	users, err := dataaccess.ListUsers(db)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
 	}
@@ -46,66 +49,67 @@ func HandleList(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
 	}, nil
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		fmt.Println(err)
-		return
+		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
 	}
 
 	db, err := database.GetDB()
 	if err != nil {
 		http.Error(w, "Failed to load database", http.StatusInternalServerError)
 		fmt.Println(err)
-		return
+		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
 	}
 
-	exists, err := db.UserExists(user.Name)
+	exists, err := dataaccess.UserExists(db, user.Name)
 	if err != nil {
 		http.Error(w, "Failed to check user existence", http.StatusInternalServerError)
 		fmt.Println(err)
-		return
+		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
 	}
 
 	if exists {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("User exists"))
-		fmt.Println("User exists")
+		return &api.Response{
+			Messages: []string{SuccessfulUserExistsMessage},
+		}, nil
 	} else {
-		if err := db.AddUser(user); err != nil {
+		if err := dataaccess.AddUser(db, user); err != nil {
 			http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
 			fmt.Println(err)
-			return
+			return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
 		}
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("User added to database"))
-		fmt.Println("User added to database")
+		return &api.Response{
+			Messages: []string{SuccessfulAddUserMessage},
+		}, nil
 	}
 }
 
-func NewUserHandler(w http.ResponseWriter, r *http.Request) {
+func NewUserHandler(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
+		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
 	}
 
 	db, err := database.GetDB()
 	if err != nil {
 		http.Error(w, "Failed to load database", http.StatusInternalServerError)
 		fmt.Println(err)
-		return
+		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
 	}
 
-	if err := db.AddUser(user); err != nil {
+	if err := dataaccess.AddUser(db, user); err != nil {
 		http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
 		fmt.Println(err)
-		return
+		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("User added to database"))
+	return &api.Response{
+		Messages: []string{SuccessfulAddUserMessage},
+	}, nil
 }

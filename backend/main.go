@@ -40,7 +40,8 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
-	r.Route("/", routes.GetRoutes())
+	r.Route("/users", routes.UserRoutes())
+	r.Route("/posts", routes.PostRoutes())
 
 	http.ListenAndServe(":8000", r)
 }
