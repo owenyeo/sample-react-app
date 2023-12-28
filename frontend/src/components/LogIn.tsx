@@ -5,11 +5,13 @@ import { Link, useNavigate} from "react-router-dom";
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import UserContext from "../contexts/UserContext";
 
 
 const LogIn: React.FC = () => {
     const [name, setName] = React.useState('');
     const navigate = useNavigate();
+    const { username, setUsername } = React.useContext(UserContext);
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setName(event.target.value);
@@ -31,6 +33,7 @@ const LogIn: React.FC = () => {
           if (response.ok) {
               // Login successful
               console.log('Login successful!');
+              setUsername(name);
               navigate('/thread/1/styled');
           } else {
               console.error('User not found!');
@@ -54,6 +57,7 @@ const LogIn: React.FC = () => {
                   if (response.ok) {
                       // Registration successful
                       console.log('Registration successful!');
+                      setUsername(name);
                       navigate('/thread/1/styled');
                   } else {
                       console.error('Registration failed!');

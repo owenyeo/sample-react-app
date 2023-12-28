@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/owenyeo/sample-react-app/backend/api"
+	"github.com/owenyeo/sample-react-app/backend/auth"
 	"github.com/owenyeo/sample-react-app/backend/dataaccess"
 	"github.com/owenyeo/sample-react-app/backend/database"
 	"github.com/owenyeo/sample-react-app/backend/models"
@@ -73,17 +74,33 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) (*api.Response, error)
 	}
 
 	if exists {
+		token, err := auth.GenerateToken(user.Name)
+
+		if err != nil {
+			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			fmt.Println(err)
+			return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		}
 		return &api.Response{
-			Messages: []string{SuccessfulUserExistsMessage},
+			Messages: []string{token},
 		}, nil
+
 	} else {
 		if err := dataaccess.AddUser(db, user); err != nil {
 			http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
 			fmt.Println(err)
 			return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
 		}
+
+		token, err := auth.GenerateToken(user.Name)
+
+		if err != nil {
+			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			fmt.Println(err)
+			return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		}
 		return &api.Response{
-			Messages: []string{SuccessfulAddUserMessage},
+			Messages: []string{token},
 		}, nil
 	}
 }
@@ -109,7 +126,15 @@ func NewUserHandler(w http.ResponseWriter, r *http.Request) (*api.Response, erro
 		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
 	}
 
+	token, err := auth.GenerateToken(user.Name)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		fmt.Println(err)
+		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
+	}
+	
+
 	return &api.Response{
-		Messages: []string{SuccessfulAddUserMessage},
+		Messages: []string{token},
 	}, nil
 }

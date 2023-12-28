@@ -1,6 +1,7 @@
 import PostItem from "./PostItem";
 import axios from "axios";
 import Post from "../types/Post";
+import UserContext from "../contexts/UserContext";
 import React, { useState, useEffect } from "react";
 import { Button, TextField } from "@mui/material"; // Import Button from your UI library
 
@@ -12,7 +13,7 @@ const BasicPostsList: React.FC<Props> = ({ styled }: Props) => {
     const [Posts, setPost] = useState<Post[]>([]);
     const [newContent, setNewContent] = useState<string>("");
     const [newTitle, setNewTitle] = useState<string>("");
-
+    const { username } = React.useContext(UserContext);
 
     useEffect(() => {
         axios.get("http://localhost:8000/posts")
@@ -38,7 +39,7 @@ const BasicPostsList: React.FC<Props> = ({ styled }: Props) => {
             id: Posts.length + 1,
             title: newTitle,
             content: newContent,
-            author: 'User', // Replace with the actual author name
+            author: username, // Replace with the actual author name
             timestamp: new Date(),
         })
         .then(response => {
