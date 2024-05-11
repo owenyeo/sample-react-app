@@ -11,7 +11,7 @@ import UserContext from "../contexts/UserContext";
 const LogIn: React.FC = () => {
     const [name, setName] = React.useState('');
     const navigate = useNavigate();
-    const { username, setUsername } = React.useContext(UserContext);
+    const { username, setUsername, toggleIsLoggedIn } = React.useContext(UserContext);
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setName(event.target.value);

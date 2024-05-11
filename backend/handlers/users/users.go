@@ -2,7 +2,6 @@ package users
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/owenyeo/sample-react-app/backend/api"
@@ -10,7 +9,6 @@ import (
 	"github.com/owenyeo/sample-react-app/backend/dataaccess"
 	"github.com/owenyeo/sample-react-app/backend/database"
 	"github.com/owenyeo/sample-react-app/backend/models"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -25,116 +23,100 @@ const (
 	ErrEncodeView              = "Failed to retrieve users in %s"
 )
 
-func HandleList(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
+func HandleList(w http.ResponseWriter, r *http.Request) {
 	db, err := database.GetDB()
 
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveDatabase, ListUsers))
+		http.Error(w, "Failed to load database", http.StatusInternalServerError)
+		return
 	}
 
 	users, err := dataaccess.ListUsers(db)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to retrieve users"), http.StatusInternalServerError)
+		return
 	}
 
 	data, err := json.Marshal(users)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrEncodeView, ListUsers))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to retrieve users"), http.StatusInternalServerError)
+		return
 	}
 
-	return &api.Response{
-		Payload: api.Payload{
-			Data: data,
-		},
-		Messages: []string{SuccessfulListUsersMessage},
-	}, nil
+	api.WriteJSON(w, api.NewResponse(data, "Successfully listed users"), http.StatusOK)
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		api.WriteJSON(w, api.NewResponse(err, "Invalid request payload"), http.StatusBadRequest)
+		return
 	}
 
 	db, err := database.GetDB()
 	if err != nil {
-		http.Error(w, "Failed to load database", http.StatusInternalServerError)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to load database"), http.StatusInternalServerError)
+		return
 	}
 
 	exists, err := dataaccess.UserExists(db, user.Name)
 	if err != nil {
-		http.Error(w, "Failed to check user existence", http.StatusInternalServerError)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to retrieve users"), http.StatusInternalServerError)
+		return
 	}
 
 	if exists {
 		token, err := auth.GenerateToken(user.Name)
 
 		if err != nil {
-			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-			fmt.Println(err)
-			return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+			api.WriteJSON(w, api.NewResponse(err, "Failed to generate token"), http.StatusInternalServerError)
+			return
 		}
-		return &api.Response{
-			Messages: []string{token},
-		}, nil
+		api.WriteJSON(w, api.NewResponse([]byte(token), "Successfully logged in"), http.StatusOK)
 
 	} else {
 		if err := dataaccess.AddUser(db, user); err != nil {
-			http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
-			fmt.Println(err)
-			return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
+			api.WriteJSON(w, api.NewResponse(nil, "Failed to add user"), http.StatusInternalServerError)
+			return
 		}
 
 		token, err := auth.GenerateToken(user.Name)
 
 		if err != nil {
-			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-			fmt.Println(err)
-			return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+			api.WriteJSON(w, api.NewResponse(nil, "Failed to generate token"), http.StatusInternalServerError)
+			return
 		}
-		return &api.Response{
-			Messages: []string{token},
-		}, nil
+		api.WriteJSON(w, api.NewResponse([]byte(token), "Successfully added user"), http.StatusOK)
+		return
 	}
 }
 
-func NewUserHandler(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
+func NewUserHandler(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		api.WriteJSON(w, api.NewResponse(nil, "Invalid request payload"), http.StatusBadRequest)
+		return
 	}
 
 	db, err := database.GetDB()
 	if err != nil {
-		http.Error(w, "Failed to load database", http.StatusInternalServerError)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveUsers, ListUsers))
+		api.WriteJSON(w, api.NewResponse(nil, "Failed to load database"), http.StatusInternalServerError)
+		return
 	}
 
 	if err := dataaccess.AddUser(db, user); err != nil {
-		http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
+		api.WriteJSON(w, api.NewResponse(nil, "Failed to add user"), http.StatusInternalServerError)
+		return
 	}
 
 	token, err := auth.GenerateToken(user.Name)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddUser, ListUsers))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to generate token"), http.StatusInternalServerError)
+		return
 	}
 	
 
-	return &api.Response{
-		Messages: []string{token},
-	}, nil
+	api.WriteJSON(w, api.NewResponse([]byte(token), "Successfully added user"), http.StatusOK)
 }

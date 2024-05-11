@@ -1,67 +1,69 @@
-import PostItem from "./PostItem";
-import axios from "axios";
-import Post from "../types/Post";
-import UserContext from "../contexts/UserContext";
 import React, { useState, useEffect } from "react";
-import { Button, TextField } from "@mui/material"; // Import Button from your UI library
+import axios from "axios";
+import PostItem from "./PostItem";
+import { Button, TextField } from "@mui/material";
+import Post from "../types/Post";
+import { useUser } from "../contexts/UserContext";
 
 type Props = {
     styled: boolean;
 };
 
 const BasicPostsList: React.FC<Props> = ({ styled }: Props) => {
-    const [Posts, setPost] = useState<Post[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
     const [newContent, setNewContent] = useState<string>("");
     const [newTitle, setNewTitle] = useState<string>("");
-    const { username } = React.useContext(UserContext);
+    const { username } = useUser();
 
-    useEffect(() => {
+    const fetchPosts = () => {
         axios.get("http://localhost:8000/posts")
-        .then((response) => {
-            console.log(response.data);
-            if (response.data.payload.data) {
-            setPost(response.data.payload.data);
-            } else {
-                setPost([]);
-            }
+        .then(response => {
+            setPosts(response.data.payload.data || []);
         })
-        .catch((error) => {
-            console.error('There was an error!', error);
+        .catch(error => {
+            console.error('There was an error fetching the posts!', error);
         });
-    }, []);
+    };
+    
+    useEffect(() => {
+        fetchPosts();
+    }, []);  // Dependency array is empty to run only on mount
 
     const handleNewPostChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setNewContent(event.target.value);
-    }
+    };
 
-    const handleNewPostSubmit = (event: React.FormEvent) => {        
+    const handleNewPostSubmit = (event: React.FormEvent) => {
+        event.preventDefault();
         axios.post('http://localhost:8000/posts/new', {
-            id: Posts.length + 1,
+            id: posts.length + 1,
             title: newTitle,
             content: newContent,
-            author: username, // Replace with the actual author name
+            author: username, 
             timestamp: new Date(),
         })
         .then(response => {
-            // Add the new comment to the state
-            setPost(prevPosts=> [...prevPosts, response.data]);
+            console.log("New post response data:", response.data);
+            setPosts(prevPosts => [...prevPosts, response.data]);
             setNewContent('');
+            setNewTitle('');
+            fetchPosts();
         })
         .catch(error => {
-            console.error('Error adding comment', error);
+            console.error('Error adding post', error);
         });
     };
 
     const handleNewTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setNewTitle(event.target.value);
-    }
+    };
 
     return (
         <div>
-            {Posts && Posts.map((post, index) => (
-                <PostItem key={index} styled={styled} Post={post} />
+            {posts.map((post) => (
+                <PostItem styled={styled} Post={post} />
             ))}
-            <form onSubmit={handleNewPostSubmit}>
+            <form onSubmit={handleNewPostSubmit} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <TextField
                     value={newTitle}
                     onChange={handleNewTitleChange}
@@ -72,7 +74,7 @@ const BasicPostsList: React.FC<Props> = ({ styled }: Props) => {
                     onChange={handleNewPostChange}
                     placeholder="Write a new post..."
                 />
-                <Button type="submit"  style={{ display: 'block', marginTop: '10px' }}>Submit</Button>
+                <Button variant="contained" type="submit" style={{ marginTop: '10px' }}>Submit</Button>
             </form>
         </div>
     );

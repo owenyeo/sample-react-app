@@ -9,7 +9,6 @@ import (
 	"github.com/owenyeo/sample-react-app/backend/dataaccess"
 	"github.com/owenyeo/sample-react-app/backend/database"
 	"github.com/owenyeo/sample-react-app/backend/models"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -23,59 +22,46 @@ const (
 	ErrEncodeView              = "Failed to retrieve posts in %s"
 )
 
-func HandleAddPost(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
-	var post models.Post
-	err := json.NewDecoder(r.Body).Decode(&post)
-
-	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddPost, ListPosts))
-	}
-
+func HandleListPosts(w http.ResponseWriter, r *http.Request) {
 	db, err := database.GetDB()
 	if err != nil {
-		http.Error(w, "Failed to load database", http.StatusInternalServerError)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddPost, ListPosts))
-	}
-
-	err = dataaccess.AddPost(db, post)
-	if err != nil {
-		http.Error(w, "Failed to add post", http.StatusInternalServerError)
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrAddPost, ListPosts))
-	}
-
-	return &api.Response{
-		Messages: []string{SuccessfulAddPostMessage},
-	}, nil
-}
-
-func HandleListPosts(w http.ResponseWriter, r *http.Request) (*api.Response, error) {
-	db, err := database.GetDB()
-
-	if err != nil {
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrieveDatabase, ListPosts))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to load database"), http.StatusInternalServerError)
+		return
 	}
 
 	posts, err := dataaccess.ListPosts(db)
 	if err != nil {
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrRetrievePosts, ListPosts))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to retrieve posts"), http.StatusInternalServerError)
+		return
 	}
 
-	data, err := json.Marshal(posts)
+	fmt.Println(posts)
+	api.WriteJSON(w, api.NewResponse(posts, "Successfully listed posts"), http.StatusOK)
+}
+
+func HandleAddPost(w http.ResponseWriter, r *http.Request) {
+	var post models.Post
+	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+		api.WriteJSON(w, api.NewResponse(err, "Invalid request payload"), http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.GetDB()
 	if err != nil {
-		fmt.Println(err)
-		return nil, errors.Wrap(err, fmt.Sprintf(ErrEncodeView, ListPosts))
+		api.WriteJSON(w, api.NewResponse(err, "Failed to load database"), http.StatusInternalServerError)
+		return
 	}
 
-	return &api.Response{
-		Payload: api.Payload{
-			Data: data,
-		},
-		Messages: []string{SuccessfulListPostsMessage},
-	}, nil
+	if err := dataaccess.AddPost(db, post); err != nil {
+		api.WriteJSON(w, api.NewResponse(err, "Failed to add post"), http.StatusInternalServerError)
+		return
+	}
+
+	latestPost, err := dataaccess.GetLatestPost(db)
+	if err != nil {
+		api.WriteJSON(w, api.NewResponse(err, "Failed to retrieve latest post"), http.StatusInternalServerError)
+		return
+	}
+
+	api.WriteJSON(w, api.NewResponse(latestPost, "Successfully added post"), http.StatusOK)
 }

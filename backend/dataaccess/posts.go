@@ -1,7 +1,6 @@
 package dataaccess
 
 import (
-	"fmt"
 
 	"github.com/owenyeo/sample-react-app/backend/database"
 	"github.com/owenyeo/sample-react-app/backend/models"
@@ -24,7 +23,6 @@ func ListPosts(db *database.Database) ([]models.Post, error) {
 		posts = append(posts, post)
 	}
 
-	fmt.Println(posts);
 	return posts, nil
 }
 
@@ -38,4 +36,13 @@ func AddPost(db *database.Database, newUser models.Post) error {
 	}
 
 	return nil
+}
+
+func GetLatestPost(db *database.Database) (models.Post, error) {
+	var post models.Post
+	err := db.QueryRow("SELECT id, title, content, author, created_at FROM posts ORDER BY created_at DESC LIMIT 1").Scan(&post.ID, &post.Title, &post.Content, &post.Author, &post.Date)
+	if err != nil {
+		return post, err
+	}
+	return post, nil
 }
